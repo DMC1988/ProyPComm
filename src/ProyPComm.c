@@ -26,17 +26,18 @@ int main( void )
    boardInit();
    initPCD8544();
 
-
-   // ----- Repeat for ever -------------------------
-
+   clearPCD8544();
 
    while( true ) {
-	   drawPxlPCD8544(10,10);
-
-
-
-
-
+	   for(int i=0; i<83; i++){
+		   drawPxlPCD8544(i,0);
+		   delay(50);
+	   }
+	   for(int i=0; i<43; i++){
+		   drawPxlPCD8544(0,i);
+		   delay(200);
+	   }
+	   clearPCD8544();
 
 
    }

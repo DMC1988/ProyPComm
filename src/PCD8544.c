@@ -18,14 +18,20 @@ int cacheMemIndex = 0;
  * */
 void initPCD8544(/*Ver si dsps pongo algun argumento*/){
 
+	//Inicializo los pines
+	gpioInit(PCD8544_RST, GPIO_OUTPUT);
+	gpioInit(PCD8544_DC, GPIO_OUTPUT);
+	gpioInit(PCD8544_CE, GPIO_OUTPUT);
+
+	//Inicializo el SP
 	spiConfig( SPI0 );
 
 	//Reset del LCD.
 	resetPCD8544();
 
 	//Set de instrucciones extendido
-	//Vertical addresing
-	writeToPCD8544(0x21,isCMD);
+	//Direccionamiento horizontal
+	writeToPCD8544(0x21,isCMD);	//0b00100001
 
 	//Seteo de temperatura - coeficiente de temperatura del IC
 	writeToPCD8544(0x06,isCMD);
@@ -54,9 +60,13 @@ void initPCD8544(/*Ver si dsps pongo algun argumento*/){
  * */
 void resetPCD8544(){
 	delay(1);
+
+	//Reset
+	gpioWrite(PCD8544_CE, OFF);
 	gpioWrite(PCD8544_RST, OFF);
 	delay(1);
 	gpioWrite(PCD8544_RST, ON);
+	gpioWrite(PCD8544_CE, ON);
 }
 
 /*
@@ -67,6 +77,7 @@ void resetPCD8544(){
  */
 void writeToPCD8544(uint8_t data, bool_t isData){ //Esta ya funciona. Comprobada con el SOFT envia lo que corresponde.
 
+	gpioWrite(PCD8544_CE, OFF);
 	if(isData){
 		//Si enviamos un dato.
 		gpioWrite(PCD8544_DC, ON); //1 al pin de D/negC
@@ -78,15 +89,18 @@ void writeToPCD8544(uint8_t data, bool_t isData){ //Esta ya funciona. Comprobada
 		gpioWrite(PCD8544_DC, OFF); //0 al pin de D/negC
 		spiWrite(SPI0, &data, 1 );
 	}
+	gpioWrite(PCD8544_CE, ON);
 }
 
 /*
  * @brief Borra toda la pantalla.
  */
 void clearPCD8544(void){
+	//Posicion (0,0)
 	setPxlPosPCD8544(0,0);
 
-	for (int pixel=(SIZEMEM / 8); pixel > 0; pixel--) {
+	//Recorre pxl por pxl reseteandolo
+	for (int pixel=(SIZEMEM); pixel > 0; pixel--) {
 	    writeToPCD8544(0x00, isDATA);
 	  }
 }
@@ -95,16 +109,16 @@ void clearPCD8544(void){
  * @bried Setea la posición de un pixel.
  * */
 void setPxlPosPCD8544(uint8_t x, uint8_t y){
+
 	//set de instrucciones normal
 	//direccionamiento horizontal
 	writeToPCD8544(0x20,isCMD);
 
-	//Posición x
-	writeToPCD8544((0x40 |(x/8)),isCMD);
 	//Posición y
-	writeToPCD8544((0x80 | y),isCMD);
+	writeToPCD8544((0x40 | (y%8)),isCMD);
+	//Posición x
+	writeToPCD8544((0x80 | x),isCMD);
 
-	cacheMemIndex = y + ((x / 8) * MAXNCOLS);
 }
 
 
@@ -112,9 +126,21 @@ void setPxlPosPCD8544(uint8_t x, uint8_t y){
  *
  * */
 void drawPxlPCD8544(uint8_t x, uint8_t y){
-	//Seteo la posición del pixel
-	setPxlPosPCD8544(x,y);
+	uint8_t banco;
 
-	writeToPCD8544(0x01, isDATA);
+	//determina el banco vertical.
+	banco = y/8;
+
+	//set de instrucciones normal
+	//direccionamiento horizontal
+	writeToPCD8544(0x20,isCMD);
+
+	//Posición y
+	writeToPCD8544((0x40 | banco),isCMD);
+	//Posición x
+	writeToPCD8544((0x80 | x),isCMD);
+
+	//determina que pixel setear dentro del banco vertical
+	writeToPCD8544(1<<(y-(8*banco-1)), isDATA);
 
 }
