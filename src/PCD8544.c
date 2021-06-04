@@ -2,19 +2,21 @@
  * PCD8544.c
  *
  *  Created on: 19 may. 2021
- *      Author: damian
+ *      Author: Damián Captuo
  */
 
 #include <PCD8544.h>
+#include <font.h>
 
-// @var array Chache memory Lcd 6 * 84 = 504 bytes
-static char cacheMemLcd[SIZEMEM];
+// @var Memoria cache 6*84 = 504
+static uint8_t cacheMemLcd[SIZEMEM];
 
-// @var array Chache memory char index
-int cacheMemIndex = 0;
+
+// @var Indice de la memoeria cache
+uint16_t cacheMemIndex = 0;
 
 /*
- * @brief Inicializar los puertos necesarios y el displai
+ * @brief Inicializar los puertos necesarios y el display
  * */
 void initPCD8544(/*Ver si dsps pongo algun argumento*/){
 
@@ -52,7 +54,6 @@ void initPCD8544(/*Ver si dsps pongo algun argumento*/){
 
 	// normal mode
 	writeToPCD8544(0x0C,isCMD);
-
 }
 
 /*
@@ -97,50 +98,106 @@ void writeToPCD8544(uint8_t data, bool_t isData){ //Esta ya funciona. Comprobada
  */
 void clearPCD8544(void){
 	//Posicion (0,0)
-	setPxlPosPCD8544(0,0);
+	setTxtPosPCD8544(0,0);
 
 	//Recorre pxl por pxl reseteandolo
-	for (int pixel=(SIZEMEM); pixel > 0; pixel--) {
+	for (uint16_t pixel=(SIZEMEM); pixel > 0; pixel--) {
+		cacheMemLcd[pixel] = 0x00;
 	    writeToPCD8544(0x00, isDATA);
 	  }
+
+	 writeToPCD8544(0x40, isCMD);
+	 writeToPCD8544(0x80, isCMD);
 }
 
 /*
- * @bried Setea la posición de un pixel.
+ * @brief Actualiza la pantalla del display con lo cargado en la memoria cache
  * */
+void updateScrnPCD8544(void){
+	uint16_t i;
+
+	//Posisción (0,0) del LCD.
+	setTxtPosPCD8544(0,0);
+
+	//Pasa lo que tengo en la memoria cache al LCD
+	for(i=0; i<SIZEMEM; i++){
+		writeToPCD8544(cacheMemLcd[i], isDATA);
+	}
+}
+
+
+/*
+ * @brief Setea la posición del texto
+ * @param x entero indicando la posicion x del pixel 0 <= x <= 5 filas
+ * @param y entero indicando la posicion x del pixel 0 <= y <= 14 columnas
+ * */
+void setTxtPosPCD8544(uint8_t x, uint8_t y){
+
+	//set de instrucciones normal
+	//direccionamiento horizontal
+	writeToPCD8544(0x20,isCMD);
+
+	//Posición x
+	writeToPCD8544(0x80 | x,isCMD);
+	//Posición y
+	writeToPCD8544(0x20 | (y*6),isCMD);
+
+	cacheMemIndex = (y*6) + (x*MAXNCOLS);
+
+}
+
+/*
+ * @brief Setea la posición del pixel..
+ * @param x entero indicando la posicion x del pixel 0 < x < 83
+ * @param y entero indicando la posicion x del pixel 0 < y < 47
+ **/
 void setPxlPosPCD8544(uint8_t x, uint8_t y){
 
 	//set de instrucciones normal
 	//direccionamiento horizontal
 	writeToPCD8544(0x20,isCMD);
 
-	//Posición y
-	writeToPCD8544((0x40 | (y%8)),isCMD);
 	//Posición x
-	writeToPCD8544((0x80 | x),isCMD);
+	writeToPCD8544(0x80 | y, isCMD);
+	//Posición x
+	writeToPCD8544(0x20 | (x/6), isCMD);
+
+	cacheMemIndex = x + ((y / 8)*MAXNCOLS);
 
 }
 
+/*
+ *@brief Dibuja un pixel individual.
+ * */
+//void drawPxlPCD8544(uint8_t x, uint8_t y){ //Esta ya funciona
+
+void drawPxlPCD8544(uint8_t x, uint8_t y){
+	setPxlPosPCD8544(x,y);
+	cacheMemLcd[cacheMemIndex] |= 1<<(y % 8);
+
+}
 
 /*
  *
+ *
  * */
-void drawPxlPCD8544(uint8_t x, uint8_t y){
-	uint8_t banco;
+uint8_t PCD8544_DrawChar(char character)
+{
+  uint8_t i;
+  // check if character is out of range
+  if ((character < 0x20) &&
+      (character > 0x7f)) {
+    // out of range
+    return 0;
+  }
 
-	//determina el banco vertical.
-	banco = y/8;
-
-	//set de instrucciones normal
-	//direccionamiento horizontal
-	writeToPCD8544(0x20,isCMD);
-
-	//Posición y
-	writeToPCD8544((0x40 | banco),isCMD);
-	//Posición x
-	writeToPCD8544((0x80 | x),isCMD);
-
-	//determina que pixel setear dentro del banco vertical
-	writeToPCD8544(1<<(y-(8*banco-1)), isDATA);
-
+  // loop through 5 bytes
+  for (i = 0; i < 5; i++) {
+    // read from ROM memory
+    cacheMemLcd[cacheMemIndex++] = (FONTS[character - 32][i]);
+  }
+  //
+  cacheMemIndex++;
+  // return exit
+  return 0;
 }

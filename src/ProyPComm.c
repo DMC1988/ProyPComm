@@ -28,16 +28,22 @@ int main( void )
 
    clearPCD8544();
 
+
    while( true ) {
-	   for(int i=0; i<83; i++){
-		   drawPxlPCD8544(i,0);
-		   delay(50);
-	   }
-	   for(int i=0; i<43; i++){
-		   drawPxlPCD8544(0,i);
-		   delay(200);
-	   }
-	   clearPCD8544();
+		   for(int i=0; i<MAXNCOLS; i++){
+			   PCD8544_DrawChar('D');
+			   PCD8544_DrawChar('o');
+			   PCD8544_DrawChar('g');
+			   PCD8544_DrawChar('e');
+			   PCD8544_DrawChar(' ');
+			   PCD8544_DrawChar('S');
+			   PCD8544_DrawChar('h');
+			   PCD8544_DrawChar('i');
+			   PCD8544_DrawChar('b');
+			   PCD8544_DrawChar('a');
+			   updateScrnPCD8544();
+			   delay(100);
+		   }
 
 
    }

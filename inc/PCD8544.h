@@ -65,14 +65,18 @@ void clearPCD8544(void);
 /*
  *@brief Setea la posición de un pixel.
  * */
-void setPxlPosPCD8544(uint8_t, uint8_t);
+void setTxtPosPCD8544(uint8_t, uint8_t);
 
 /*
- * @brief Activa un pixen en una posicion (x,y)
+ * @brief Activa un pixel en una posicion (x,y)
  * */
 void drawPxlPCD8544(uint8_t, uint8_t);
 
+void updateScrnPCD8544(void);
 
+void setPxlPosPCD8544(uint8_t, uint8_t);
+
+uint8_t PCD8544_DrawChar(char);
 
 
 //clearPxlPCD8544(x1,y1,); Borra un pixel
@@ -81,7 +85,6 @@ void drawPxlPCD8544(uint8_t, uint8_t);
 //writeStrPCD8544();
 //setCursorPosPCD8544();
 
-//drawPxlPCD8544();
 //drawLinePCD8544();
 //drawCirclePCD8544();
 //drawSqaurePCD8544();
