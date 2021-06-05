@@ -9,6 +9,8 @@
 #include "ProyPComm.h"
 #include "PCD8544.h"
 #include "sapi.h"
+#include "font.h"
+
 
 /*=====[Definition macros of private constants]==============================*/
 
@@ -28,22 +30,16 @@ int main( void )
 
    clearPCD8544();
 
+   //Dibuja logo de FIUBA
+   drawImgPCD8544(logoFIUBA);
+
+   setTxtPosPCD8544(0,1);
+   wrtStrPCD8544("Univ. Bs. As.");
+
+   updateScrnPCD8544();
+   delay(2000);
 
    while( true ) {
-		   for(int i=0; i<MAXNCOLS; i++){
-			   PCD8544_DrawChar('D');
-			   PCD8544_DrawChar('o');
-			   PCD8544_DrawChar('g');
-			   PCD8544_DrawChar('e');
-			   PCD8544_DrawChar(' ');
-			   PCD8544_DrawChar('S');
-			   PCD8544_DrawChar('h');
-			   PCD8544_DrawChar('i');
-			   PCD8544_DrawChar('b');
-			   PCD8544_DrawChar('a');
-			   updateScrnPCD8544();
-			   delay(100);
-		   }
 
 
    }

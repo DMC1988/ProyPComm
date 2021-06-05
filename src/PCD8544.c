@@ -17,13 +17,13 @@ uint16_t cacheMemIndex = 0;
 
 /*
  * @brief Inicializar los puertos necesarios y el display
- * */
-void initPCD8544(/*Ver si dsps pongo algun argumento*/){
+ */
+void initPCD8544(){
 
 	//Inicializo los pines
-	gpioInit(PCD8544_RST, GPIO_OUTPUT);
-	gpioInit(PCD8544_DC, GPIO_OUTPUT);
-	gpioInit(PCD8544_CE, GPIO_OUTPUT);
+	gpioInit(RST_PCD8544, GPIO_OUTPUT);
+	gpioInit(DC_PCD8544, GPIO_OUTPUT);
+	gpioInit(CE_PCD8544, GPIO_OUTPUT);
 
 	//Inicializo el SP
 	spiConfig( SPI0 );
@@ -58,39 +58,39 @@ void initPCD8544(/*Ver si dsps pongo algun argumento*/){
 
 /*
  * @brief Reset del display LCD
- * */
+ */
 void resetPCD8544(){
 	delay(1);
 
 	//Reset
-	gpioWrite(PCD8544_CE, OFF);
-	gpioWrite(PCD8544_RST, OFF);
+	gpioWrite(CE_PCD8544, OFF);
+	gpioWrite(RST_PCD8544, OFF);
 	delay(1);
-	gpioWrite(PCD8544_RST, ON);
-	gpioWrite(PCD8544_CE, ON);
+	gpioWrite(RST_PCD8544, ON);
+	gpioWrite(CE_PCD8544, ON);
 }
 
 /*
  * @brief Enviar datos/comandos.
  * @param data El comando o el dato a enviar al LCD.
- * @param isData Booleando para indicar si es dato(1) o comando(0).
+ * @param isData Booleano para indicar si es dato(1) o comando(0).
  * @return void
  */
-void writeToPCD8544(uint8_t data, bool_t isData){ //Esta ya funciona. Comprobada con el SOFT envia lo que corresponde.
+void writeToPCD8544(uint8_t data, bool_t isData){
 
-	gpioWrite(PCD8544_CE, OFF);
+	gpioWrite(CE_PCD8544, OFF);
 	if(isData){
 		//Si enviamos un dato.
-		gpioWrite(PCD8544_DC, ON); //1 al pin de D/negC
+		gpioWrite(DC_PCD8544, ON); //1 al pin de D/negC
 
 		spiWrite(SPI0, &data, 1 );
 	}
 	else{
 		//Si enviamos un comando.
-		gpioWrite(PCD8544_DC, OFF); //0 al pin de D/negC
+		gpioWrite(DC_PCD8544, OFF); //0 al pin de D/negC
 		spiWrite(SPI0, &data, 1 );
 	}
-	gpioWrite(PCD8544_CE, ON);
+	gpioWrite(CE_PCD8544, ON);
 }
 
 /*
@@ -123,8 +123,8 @@ void updateScrnPCD8544(void){
 	for(i=0; i<SIZEMEM; i++){
 		writeToPCD8544(cacheMemLcd[i], isDATA);
 	}
-}
 
+}
 
 /*
  * @brief Setea la posición del texto
@@ -143,7 +143,6 @@ void setTxtPosPCD8544(uint8_t x, uint8_t y){
 	writeToPCD8544(0x20 | (y*6),isCMD);
 
 	cacheMemIndex = (y*6) + (x*MAXNCOLS);
-
 }
 
 /*
@@ -163,27 +162,25 @@ void setPxlPosPCD8544(uint8_t x, uint8_t y){
 	writeToPCD8544(0x20 | (x/6), isCMD);
 
 	cacheMemIndex = x + ((y / 8)*MAXNCOLS);
-
 }
 
 /*
  *@brief Dibuja un pixel individual.
- * */
-//void drawPxlPCD8544(uint8_t x, uint8_t y){ //Esta ya funciona
-
+ *@param x entero indicando la posición x del pixel a setear.
+ *@param y entero indicando la posición y del pixel a setear.
+ */
 void drawPxlPCD8544(uint8_t x, uint8_t y){
 	setPxlPosPCD8544(x,y);
 	cacheMemLcd[cacheMemIndex] |= 1<<(y % 8);
-
 }
 
 /*
- *
- *
+ *@brief Escribe un caracter en pantalla.
+ *@param character caracter a escribir.
  * */
-uint8_t PCD8544_DrawChar(char character)
+uint8_t wrtCharPCD8544(char character)
 {
-  uint8_t i;
+  uint8_t i = 0;
   // check if character is out of range
   if ((character < 0x20) &&
       (character > 0x7f)) {
@@ -200,4 +197,51 @@ uint8_t PCD8544_DrawChar(char character)
   cacheMemIndex++;
   // return exit
   return 0;
+}
+
+/*
+ *@brief Escribe una cadena de caracteres en pantalla.
+ *@param str Puntero al array de caracteres.
+ */
+void wrtStrPCD8544(char *str){
+	uint8_t i = 0;
+
+	while(str[i] != 0){
+		wrtCharPCD8544(str[i++]);
+	}
+}
+
+void invClrPCD8544(bool_t inv){
+	//Set de instrucciones reducido
+	writeToPCD8544(0x20,isCMD);
+	if(inv){writeToPCD8544(0x0D, isCMD);}
+	else{writeToPCD8544(0x0C, isCMD);}
+}
+
+void setAllPxlPCD8544(bool_t all){
+	writeToPCD8544(0x20,isCMD);
+
+	if(all){writeToPCD8544(0x09, isCMD);}
+	else{writeToPCD8544(0x08, isCMD);}
+}
+
+/*
+ *@brief Dibuja una imagen cargada en font.c
+ *@param img Puntero a la imagen cargada en font.c
+ */
+
+void drawImgPCD8544(uint8_t *img){
+	uint16_t i;
+
+	//Posiciona el puntero de memoria de LCd en posicion 0.
+	writeToPCD8544(0x40, isCMD);
+	writeToPCD8544(0x80, isCMD);
+
+	for (i = 0; i < SIZEMEM; i++){
+			cacheMemLcd[i] = img[i];
+	}
+
+	//Posiciona el puntero de memoria de LCd en posicion 0.
+	writeToPCD8544(0x80, isCMD);
+	writeToPCD8544(0x40, isCMD);
 }
