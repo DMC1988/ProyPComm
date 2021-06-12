@@ -62,14 +62,14 @@ void clearPCD8544(void);
  *@param uint8_t
  *@param uint8_t
  */
-void setTxtPosPCD8544(uint8_t, uint8_t);
+uint8_t setTxtPosPCD8544(uint8_t, uint8_t);
 
 /*
  *@brief Setea la posición de un pixel.
  *@param uint8_t
  *@param uint8_t
  */
-void setPxlPosPCD8544(uint8_t, uint8_t);
+uint8_t setPxlPosPCD8544(uint8_t, uint8_t);
 
 /*
  * @brief Activa un pixel en una posicion (x,y)

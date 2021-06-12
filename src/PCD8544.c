@@ -136,7 +136,7 @@ void updateScrnPCD8544(void){
  * @param x entero indicando la posicion x del pixel 0 <= x <= 5 filas
  * @param y entero indicando la posicion x del pixel 0 <= y <= 13 columnas
  * */
-void setTxtPosPCD8544(uint8_t x, uint8_t y){
+uint8_t setTxtPosPCD8544(uint8_t x, uint8_t y){
 
 	  if ((y >= MAXNROWS) ||
 	      (x >= (MAXNCOLS / 6))) {
@@ -164,7 +164,7 @@ void setTxtPosPCD8544(uint8_t x, uint8_t y){
  * @param x entero indicando la posicion x del pixel 0 < x < 83
  * @param y entero indicando la posicion y del pixel 0 < y < 47
  **/
-void setPxlPosPCD8544(uint8_t x, uint8_t y){
+uint8_t setPxlPosPCD8544(uint8_t x, uint8_t y){
 
 	if ((x >= (MAXNROWS * 8)) ||
 	      (y >=  MAXNCOLS)) {
@@ -248,7 +248,7 @@ void invClrPCD8544(bool_t inv){
 }
 
 /*
- * @brief Setea todos los pixels depl diplay
+ * @brief Setea todos los pixels del diplay
  * @param all Bool para activar todos los pixels o no.
  */
 
