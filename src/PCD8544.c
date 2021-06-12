@@ -16,7 +16,7 @@ static uint8_t cacheMemLcd[SIZEMEM];
 uint16_t cacheMemIndex = 0;
 
 /*
- * @brief Inicializar los puertos necesarios y el display
+ * @brief Inicializar los puertos necesarios y el display.
  */
 void initPCD8544(){
 
