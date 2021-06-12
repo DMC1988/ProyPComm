@@ -20,12 +20,12 @@ uint16_t cacheMemIndex = 0;
  */
 void initPCD8544(){
 
-	//Inicializo los pines
+	//Inicializo los pines de conexion al LCD
 	gpioInit(RST_PCD8544, GPIO_OUTPUT);
 	gpioInit(DC_PCD8544, GPIO_OUTPUT);
 	gpioInit(CE_PCD8544, GPIO_OUTPUT);
 
-	//Inicializo el SP
+	//Inicializo el SPI
 	spiConfig( SPI0 );
 
 	//Reset del LCD.
@@ -33,7 +33,7 @@ void initPCD8544(){
 
 	//Set de instrucciones extendido
 	//Direccionamiento horizontal
-	writeToPCD8544(0x21,isCMD);	//0b00100001
+	writeToPCD8544(0x21,isCMD);
 
 	//Seteo de temperatura - coeficiente de temperatura del IC
 	writeToPCD8544(0x06,isCMD);
@@ -48,11 +48,11 @@ void initPCD8544(){
 	// Ulcd = 0x11000010 = 7,02 V
 	writeToPCD8544(0xC2,isCMD);
 
-	// normal instruction set
-	// horizontal adressing mode
+	//Set de intrucciones reducido
+	//Direccionamiento horizontal
 	writeToPCD8544(0x20,isCMD);
 
-	// normal mode
+	//Modo normal
 	writeToPCD8544(0x0C,isCMD);
 }
 
@@ -62,10 +62,13 @@ void initPCD8544(){
 void resetPCD8544(){
 	delay(1);
 
-	//Reset
+	//Reset, RST=0 y CE=0
 	gpioWrite(CE_PCD8544, OFF);
 	gpioWrite(RST_PCD8544, OFF);
+
 	delay(1);
+
+	//RST=1 y CE=1
 	gpioWrite(RST_PCD8544, ON);
 	gpioWrite(CE_PCD8544, ON);
 }
@@ -78,7 +81,9 @@ void resetPCD8544(){
  */
 void writeToPCD8544(uint8_t data, bool_t isData){
 
+	//CE=0
 	gpioWrite(CE_PCD8544, OFF);
+
 	if(isData){
 		//Si enviamos un dato.
 		gpioWrite(DC_PCD8544, ON); //1 al pin de D/negC
@@ -100,19 +105,19 @@ void clearPCD8544(void){
 	//Posicion (0,0)
 	setTxtPosPCD8544(0,0);
 
-	//Recorre pxl por pxl reseteandolo
-	for (uint16_t pixel=(SIZEMEM); pixel > 0; pixel--) {
+	//Recorre pxl por pxl reseteandolo de cacheMemLcd y lo envia al LCD
+	for (uint16_t pixel=0; pixel < SIZEMEM; pixel++) {
 		cacheMemLcd[pixel] = 0x00;
 	    writeToPCD8544(0x00, isDATA);
 	  }
 
-	 writeToPCD8544(0x40, isCMD);
-	 writeToPCD8544(0x80, isCMD);
+	//Posicion(0,0)
+	setTxtPosPCD8544(0,0);
 }
 
 /*
- * @brief Actualiza la pantalla del display con lo cargado en la memoria cache
- * */
+ * @brief Actualiza la pantalla del display con lo cargado en la memoria cache.
+ */
 void updateScrnPCD8544(void){
 	uint16_t i;
 
@@ -129,28 +134,44 @@ void updateScrnPCD8544(void){
 /*
  * @brief Setea la posición del texto
  * @param x entero indicando la posicion x del pixel 0 <= x <= 5 filas
- * @param y entero indicando la posicion x del pixel 0 <= y <= 14 columnas
+ * @param y entero indicando la posicion x del pixel 0 <= y <= 13 columnas
  * */
 void setTxtPosPCD8544(uint8_t x, uint8_t y){
+
+	  if ((y >= MAXNROWS) ||
+	      (x >= (MAXNCOLS / 6))) {
+
+		  //Fuera de rango del display
+	    return ERROR;
+	  }
 
 	//set de instrucciones normal
 	//direccionamiento horizontal
 	writeToPCD8544(0x20,isCMD);
 
-	//Posición x
-	writeToPCD8544(0x80 | x,isCMD);
 	//Posición y
-	writeToPCD8544(0x20 | (y*6),isCMD);
+	writeToPCD8544(0x80 | (y*6),isCMD);
+	//Posición x
+	writeToPCD8544(0x40 | (x),isCMD);
 
-	cacheMemIndex = (y*6) + (x*MAXNCOLS);
+	cacheMemIndex = (y*MAXNCOLS) + (x*6);
+
+	return SUCCESS;
 }
 
 /*
  * @brief Setea la posición del pixel..
  * @param x entero indicando la posicion x del pixel 0 < x < 83
- * @param y entero indicando la posicion x del pixel 0 < y < 47
+ * @param y entero indicando la posicion y del pixel 0 < y < 47
  **/
 void setPxlPosPCD8544(uint8_t x, uint8_t y){
+
+	if ((x >= (MAXNROWS * 8)) ||
+	      (y >=  MAXNCOLS)) {
+
+		//Fuera del rango del display
+	    return ERROR;
+	  }
 
 	//set de instrucciones normal
 	//direccionamiento horizontal
@@ -159,9 +180,11 @@ void setPxlPosPCD8544(uint8_t x, uint8_t y){
 	//Posición x
 	writeToPCD8544(0x80 | y, isCMD);
 	//Posición x
-	writeToPCD8544(0x20 | (x/6), isCMD);
+	writeToPCD8544(0x40 | (x/6), isCMD);
 
 	cacheMemIndex = x + ((y / 8)*MAXNCOLS);
+
+	return SUCCESS;
 }
 
 /*
@@ -181,22 +204,24 @@ void drawPxlPCD8544(uint8_t x, uint8_t y){
 uint8_t wrtCharPCD8544(char character)
 {
   uint8_t i = 0;
-  // check if character is out of range
+
+  //Cheuquear si el caracter esta incluido en font.h
   if ((character < 0x20) &&
       (character > 0x7f)) {
-    // out of range
-    return 0;
+
+	//Si no esta en font.h
+    return ERROR;
   }
 
-  // loop through 5 bytes
+  //Recorrer los 5 bytes que forman el  caracter
   for (i = 0; i < 5; i++) {
-    // read from ROM memory
+    //Carga los bytes en cacheMemLcd uno detras de otro.
     cacheMemLcd[cacheMemIndex++] = (FONTS[character - 32][i]);
   }
-  //
+  //Incremente el indice de memoria cache
   cacheMemIndex++;
-  // return exit
-  return 0;
+
+  return SUCCESS;
 }
 
 /*
@@ -211,6 +236,10 @@ void wrtStrPCD8544(char *str){
 	}
 }
 
+/*
+ *@brief Invierte los colores del LCD.
+ *@param inv Bool para activar inversión de colores o no.
+ */
 void invClrPCD8544(bool_t inv){
 	//Set de instrucciones reducido
 	writeToPCD8544(0x20,isCMD);
@@ -218,22 +247,26 @@ void invClrPCD8544(bool_t inv){
 	else{writeToPCD8544(0x0C, isCMD);}
 }
 
+/*
+ * @brief Setea todos los pixels depl diplay
+ * @param all Bool para activar todos los pixels o no.
+ */
+
 void setAllPxlPCD8544(bool_t all){
 	writeToPCD8544(0x20,isCMD);
 
 	if(all){writeToPCD8544(0x09, isCMD);}
-	else{writeToPCD8544(0x08, isCMD);}
+	else{writeToPCD8544(0x0C, isCMD);}
 }
 
 /*
  *@brief Dibuja una imagen cargada en font.c
  *@param img Puntero a la imagen cargada en font.c
  */
-
 void drawImgPCD8544(uint8_t *img){
 	uint16_t i;
 
-	//Posiciona el puntero de memoria de LCd en posicion 0.
+	//Posiciona el puntero de memoria de LCD en posicion 0.
 	writeToPCD8544(0x40, isCMD);
 	writeToPCD8544(0x80, isCMD);
 
@@ -244,4 +277,30 @@ void drawImgPCD8544(uint8_t *img){
 	//Posiciona el puntero de memoria de LCd en posicion 0.
 	writeToPCD8544(0x80, isCMD);
 	writeToPCD8544(0x40, isCMD);
+}
+
+/*
+ *@brief Borra una de cantidad de caracteres determinada
+ *       a partir de la posicion especificada.
+ *@param x Posición x de la posicion inicial.
+ *@param y Posición y de la posicion inicial.
+ *@param nchar Cantidad de caracteres a borrar.
+ */
+void clrTxtPosPCD8544(uint8_t x, uint8_t y, uint8_t nchar){
+
+	uint16_t i, memixbkup;
+
+	//Guardo la posición del indice.
+	memixbkup = cacheMemIndex;
+
+	//Especifico la posición incial
+	setTxtPosPCD8544(x,y);
+
+	for(i=0; i<=6*nchar; i++){
+		cacheMemLcd[(cacheMemIndex++)] = 0x00;
+	    writeToPCD8544(0x00, isDATA);
+	}
+	//Retomo la posición del indice.
+	cacheMemIndex = memixbkup;
+
 }

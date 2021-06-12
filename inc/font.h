@@ -7,7 +7,9 @@
  *Pagina para dibujar con pixeles
  *https://www.e-tinkers.com/nokia5110-lcd-image-creator/
  *
- *En la siguiente pagina probar inviertiendo los colores por si no sale bien.
+ *Pagina para convertir imagenes
+ *En la siguiente pagina configurar vertical-1 bit per pixel e
+ *inviertir los colores.
  *https://javl.github.io/image2cpp/
  */
 
@@ -18,6 +20,7 @@
 
 extern const uint8_t FONTS[][COLSLENGTH];
 extern const uint8_t logoFIUBA[];
+extern const uint8_t Zelda[];
 
 
 #endif /* PRE_INGRESO_PROYPCOMM_INC_FONT_H_ */
